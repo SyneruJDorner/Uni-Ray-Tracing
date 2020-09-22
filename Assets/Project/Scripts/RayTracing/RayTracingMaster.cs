@@ -2,12 +2,32 @@
 using UnityEngine;
 public class RayTracingMaster : MonoBehaviour
 {
+    #region Singleton Access
+    private static RayTracingMaster instance;//Use of a singleton here, needs to be static in order for other scripts to access it.
+
+    public static RayTracingMaster Instance
+    {
+        get
+        {
+            if (instance == null)
+            {
+                instance = GameObject.FindObjectOfType<RayTracingMaster>();
+            }
+
+            return instance;
+        }
+    }
+    #endregion
+
     public ComputeShader RayTracingShader;
     private RenderTexture _target;
     private Camera _camera;
     public Texture SkyboxTexture;
     public Light DirectionalLight;
 
+
+    public List<Sphere.sSphere> spheres = new List<Sphere.sSphere>();
+    /*
     struct Sphere
     {
         public Vector3 position;
@@ -19,6 +39,8 @@ public class RayTracingMaster : MonoBehaviour
     public Vector2 SphereRadius = new Vector2(3.0f, 8.0f);
     public uint SpheresMax = 100;
     public float SpherePlacementRadius = 100.0f;
+    */
+
     private ComputeBuffer _sphereBuffer;
 
     private void Awake()
@@ -41,40 +63,6 @@ public class RayTracingMaster : MonoBehaviour
 
     private void SetUpScene()
     {
-        List<Sphere> spheres = new List<Sphere>();
-
-        // Add a number of random spheres
-        for (int i = 0; i < SpheresMax; i++)
-        {
-            Sphere sphere = new Sphere();
-            // Radius and radius
-
-            sphere.radius = SphereRadius.x + Random.value * (SphereRadius.y - SphereRadius.x);
-            Vector2 randomPos = Random.insideUnitCircle * SpherePlacementRadius;
-            sphere.position = new Vector3(randomPos.x, sphere.radius, randomPos.y);
-
-            // Reject spheres that are intersecting others
-            foreach (Sphere other in spheres)
-            {
-                float minDist = sphere.radius + other.radius;
-                if (Vector3.SqrMagnitude(sphere.position - other.position) < minDist * minDist)
-                    goto SkipSphere;
-            }
-
-            // Albedo and specular color
-            Color color = Random.ColorHSV();
-            bool metal = Random.value < 0.5f;
-            sphere.albedo = metal ? Vector3.zero : new Vector3(color.r, color.g, color.b);
-            sphere.specular = metal ? new Vector3(color.r, color.g, color.b) : Vector3.one * 0.04f;
-
-            // Add the sphere to the list
-            spheres.Add(sphere);
-
-        SkipSphere:
-            continue;
-        }
-
-        // Assign to compute buffer
         _sphereBuffer = new ComputeBuffer(spheres.Count, 40);
         _sphereBuffer.SetData(spheres);
     }
